@@ -1,0 +1,169 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel='import' href='bower_components/polymer/polymer.html'/>
+<link rel='import' href='bower_components/paper-toolbar/paper-toolbar.html'/>
+<link rel='import' href='bower_components/paper-button/paper-button.html'/>
+<link rel='import' href='bower_components/paper-fab/paper-fab.html'/>
+<link rel='import' href='bower_components/paper-listbox/paper-listbox.html'/>
+<link rel='import' href='bower_components/paper-item/paper-item.html'/>
+<link rel='import' href='bower_components/paper-checkbox/paper-checkbox.html'/>
+<link rel='import' href='bower_components/paper-icon-button/paper-icon-button.html'/>
+<link rel='import' href='bower_components/paper-input/paper-input.html'/>
+<link rel='import' href='bower_components/paper-dialog/paper-dialog.html'/>
+<link rel='import' href='bower_components/iron-icons/iron-icons.html'/>
+
+<dom-module id='tasks-list'>
+	<template>
+			<!-- Create a toolbar/actionbar -->
+			<paper-toolbar>
+				<div class="title"> Sort Application </div>
+			</paper-toolbar>
+	 
+			<div>
+				<!-- Create a list of tasks -->
+				<paper-listbox>
+					<template is='dom-repeat' items='{{ tasks }}'>
+						<!-- Create an individual task -->
+						<paper-item>
+							{{ item.taskName }}							
+						</paper-item>
+					</template>
+				</paper-listbox>	 
+				
+				<paper-dialog id="addTaskDialog">
+				  <h2>Original JSON</h2>
+				  <div class="my-content-wrapper">
+					<paper-dialog-scrollable>
+					  Dictionary = {&#39;34&#39;: &#39;thirty-four&#39;, &#39;90&#39;: &#39;ninety&#39;,</br>
+													&#39;91&#39;: &#39;ninety-one&#39;,&#39;21: &#39;twenty-one&#39;,</br>
+													&#39;61&#39;: &#39;sixty-one&#39;, &#39;9&#39;: &#39;nine&#39;,</br>
+													&#39;2&#39;: &#39;two&#39;, &#39;6&#39;: &#39;six&#39;, &#39;3&#39;: &#39;three&#39;,</br>
+													&#39;8&#39;: &#39;eight&#39;, &#39;80&#39;: &#39;eighty&#39;, &#39;81&#39;: &#39;eighty-one&#39;,</br>
+													&#39;Ninety-Nine&#39;: &#39;99&#39;, &#39;nine-hundred&#39;: &#39;900&#39;,}
+					</paper-dialog-scrollable>
+				  </div>
+				  <div class="buttons">
+					<paper-button on-click='beginSort'>Start Sort</paper-button>
+				  </div>
+				</paper-dialog>
+				<!-- Create a modal dialog -->
+				
+				<paper-dialog id='showDialog' modal>
+					<div>{{ msgLbl }}</div>
+					<div class='buttons'>
+						<paper-button dialog-dismiss>Cancel</paper-button>
+					</div>
+				</paper-dialog>
+			
+			</div>
+	</template>	
+</dom-module>
+<script>
+var Dictionary = {'34': 'thirty-four', '90': 'ninety',
+'91': 'ninety-one', '21': 'twenty-one',
+'61': 'sixty-one', '9': 'nine',
+'2': 'two', '6': 'six', '3': 'three',
+'8': 'eight', '80': 'eighty', '81': 'eighty-one',
+'Ninety-Nine': '99', 'nine-hundred': '900'};
+
+// From https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys
+if (!Object.keys) {
+  Object.keys = (function() {
+    'use strict';
+    var hasOwnProperty = Object.prototype.hasOwnProperty,
+        hasDontEnumBug = !({ toString: null }).propertyIsEnumerable('toString'),
+        dontEnums = [
+          'toString',
+          'toLocaleString',
+          'valueOf',
+          'hasOwnProperty',
+          'isPrototypeOf',
+          'propertyIsEnumerable',
+          'constructor'
+        ],
+        dontEnumsLength = dontEnums.length;
+
+    return function(obj) {
+      if (typeof obj !== 'object' && (typeof obj !== 'function' || obj === null)) {
+        throw new TypeError('Object.keys called on non-object');
+      }
+
+      var result = [], prop, i;
+
+      for (prop in obj) {
+        if (hasOwnProperty.call(obj, prop)) {
+          result.push(prop);
+        }
+      }
+
+      if (hasDontEnumBug) {
+        for (i = 0; i < dontEnumsLength; i++) {
+          if (hasOwnProperty.call(obj, dontEnums[i])) {
+            result.push(dontEnums[i]);
+          }
+        }
+      }
+      return result;
+    };
+  }());
+}
+
+//custom polymer notation
+Polymer({
+    is: 'tasks-list',   
+    ready: function() {
+		this.tasks = [];
+		this.$.addTaskDialog.open();
+	},
+	showAddTaskDialog: function() {
+		this.$.addTaskDialog.open();
+	},
+	beginSort: function() {
+		var keys = Object.keys(Dictionary), i, len = keys.length;
+		//Sorting with own comparison function
+		keys.sort(
+						function (a,b){
+							if ( isNaN(a)&&isNaN(b)) return a<b?-1:a==b?0:1;//both are string
+							else if (isNaN(a)) return 1;//only a is a string
+							else if (isNaN(b)) return -1;//only b is a string
+							else return a-b;//both are num
+						}
+			);
+		//this.msgLbl = JSON.stringify(keys);
+		//this.$.showDialog.open();
+		var sortedJson = {};	
+		for (i = 0; i < len; i++) {
+			k = keys[i];
+			var obj = {};
+			sortedJson[k] = Dictionary[k];
+			//sortedJson.push(obj);			
+		}
+		localStorage.setItem("SortedDictionary", JSON.stringify(sortedJson));		
+		// Close the dialog
+		this.$.addTaskDialog.close();
+		// Update the list of tasks
+			this.updateTasks();
+	},
+	updateTasks: function() {
+		// Empty the array
+		this.splice('tasks', 0);
+	 
+		// Add items from localStorage
+		var SortedDictionaryTemp = JSON.parse(localStorage.getItem("SortedDictionary"));
+		for(var taskName in SortedDictionaryTemp) {
+			var task = {
+				'taskName': taskName+":"+SortedDictionaryTemp[taskName]
+			};
+			this.push('tasks', task);
+		}
+	}
+});
+</script>
